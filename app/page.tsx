@@ -121,6 +121,10 @@ export default function Home() {
         <button className="image-action rsvp-action" onClick={() => setRsvpOpen(true)}>CONFIRMAR ASISTENCIA</button>
       </section>
 
+      <footer className="visual-section site-footer" aria-label="BloomDate">
+        <img src="/footer-bloomdate.png" alt="Hecho con amor por BloomDate" />
+      </footer>
+
       {locationOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setLocationOpen(false)}>
           <div className="modal location-modal" role="dialog" aria-modal="true" aria-labelledby="location-title" onMouseDown={(event) => event.stopPropagation()}>
