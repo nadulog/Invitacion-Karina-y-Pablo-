@@ -109,7 +109,7 @@ export default function Home() {
 
       <section className="visual-section action-section" aria-label="Música">
         <img src="/musica.png" alt="Música: qué canción no puede faltar" />
-        <button className="image-action song-action" onClick={() => setSongOpen(true)}>SUGERIR CANCIÓN</button>
+        <a className="image-action song-action" href="https://open.spotify.com/playlist/1FXHVDtqhLjzpM5gungnyy?si=RpqP-6KkSya6Knr2zw-4Mw&utm_source=whatsapp&pt=1a8b25fca192a26abe6e84e615ed7242&pi=P7t6HVtNTbGfi" target="_blank" rel="noreferrer">SUGERIR CANCIÓN</a>
       </section>
 
       <section className="visual-section" aria-label="Regalos">
@@ -118,7 +118,7 @@ export default function Home() {
 
       <section className="visual-section action-section finale" aria-label="Cierre y confirmación">
         <img src="/cierre.png" alt="Karina y Pablo, te esperamos" />
-        <button className="image-action rsvp-action" onClick={() => setRsvpOpen(true)}>CONFIRMAR ASISTENCIA</button>
+        <a className="image-action rsvp-action" href="https://bloomdate-rsvp.netlify.app/r/boda-karina-y-pablo" target="_blank" rel="noreferrer">CONFIRMAR ASISTENCIA</a>
       </section>
 
       <footer className="visual-section site-footer" aria-label="BloomDate">
