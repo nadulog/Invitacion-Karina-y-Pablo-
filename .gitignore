@@ -45,3 +45,5 @@ next-env.d.ts
 *.tsbuildinfo
 preview-phone*.log
 *.tar.gz
+*.zip
+/.netlify/
