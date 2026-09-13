@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 const EVENT_DATE = new Date("2026-11-14T20:00:00-03:00").getTime();
 const ADDRESS = "Gorriti 950, Lomas de Zamora, Buenos Aires";
@@ -24,6 +24,189 @@ const GALLERY_IMAGES = [
 
 type TimeLeft = { days: number; hours: number; minutes: number; seconds: number };
 
+function easeInOutCubic(value: number) {
+  return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function EnvelopeIntro({ onComplete, onStartMusic }: { onComplete: () => void; onStartMusic: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLElement>(null);
+  const frameRef = useRef<number | null>(null);
+  const progressRef = useRef(0);
+  const [opening, setOpening] = useState(false);
+
+  const drawEnvelope = useCallback((progress: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, bounds.width);
+    const height = Math.max(1, bounds.height);
+    if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+    }
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const envelopeX = width * 0.055;
+    const envelopeW = width * 0.89;
+    const envelopeH = envelopeW / 1.48;
+    const envelopeY = (height - envelopeH) / 2 + progress * 15;
+    const cardProgress = easeInOutCubic(Math.max(0, Math.min(1, (progress - 0.38) / 0.48)));
+    const flapProgress = easeInOutCubic(Math.min(1, progress / 0.45));
+    const cardY = envelopeY + envelopeH * 0.08 - cardProgress * envelopeH * 0.38;
+    const cardX = envelopeX + envelopeW * 0.06;
+    const cardW = envelopeW * 0.88;
+    const cardH = envelopeH * 0.84;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(62, 50, 39, .27)";
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 18;
+    ctx.fillStyle = "#606d53";
+    ctx.beginPath();
+    ctx.roundRect(envelopeX, envelopeY, envelopeW, envelopeH, 6);
+    ctx.fill();
+    ctx.restore();
+
+    if (flapProgress > 0.52) {
+      const backLift = (flapProgress - 0.52) / 0.48;
+      ctx.fillStyle = "#89937a";
+      ctx.beginPath();
+      ctx.moveTo(envelopeX, envelopeY);
+      ctx.lineTo(envelopeX + envelopeW, envelopeY);
+      ctx.lineTo(envelopeX + envelopeW / 2, envelopeY - envelopeH * 0.56 * backLift);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.save();
+    ctx.shadowColor = "rgba(48, 43, 36, .18)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = "#fbf7ee";
+    ctx.strokeStyle = "#ded2bd";
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 3);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    const centerX = width / 2;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#606b50";
+    ctx.font = `600 ${Math.max(9, envelopeW * 0.025)}px Arial`;
+    ctx.fillText("NOS CASAMOS", centerX, cardY + cardH * 0.33);
+    ctx.fillStyle = "#5f5046";
+    ctx.font = `${Math.max(27, envelopeW * 0.088)}px Georgia`;
+    ctx.fillText("Karina & Pablo", centerX, cardY + cardH * 0.55);
+    ctx.fillStyle = "#ad6848";
+    ctx.fillRect(centerX - cardW * 0.09, cardY + cardH * 0.64, cardW * 0.18, 1.5);
+    ctx.fillStyle = "#5f5046";
+    ctx.font = `${Math.max(11, envelopeW * 0.034)}px Georgia`;
+    ctx.fillText("14 · 11 · 2026", centerX, cardY + cardH * 0.76);
+
+    ctx.fillStyle = "#6d7960";
+    ctx.beginPath();
+    ctx.moveTo(envelopeX, envelopeY);
+    ctx.lineTo(envelopeX + envelopeW / 2, envelopeY + envelopeH * 0.53);
+    ctx.lineTo(envelopeX, envelopeY + envelopeH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#647057";
+    ctx.beginPath();
+    ctx.moveTo(envelopeX + envelopeW, envelopeY);
+    ctx.lineTo(envelopeX + envelopeW / 2, envelopeY + envelopeH * 0.53);
+    ctx.lineTo(envelopeX + envelopeW, envelopeY + envelopeH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#59664c";
+    ctx.beginPath();
+    ctx.moveTo(envelopeX, envelopeY + envelopeH);
+    ctx.lineTo(envelopeX + envelopeW / 2, envelopeY + envelopeH * 0.51);
+    ctx.lineTo(envelopeX + envelopeW, envelopeY + envelopeH);
+    ctx.closePath();
+    ctx.fill();
+
+    if (flapProgress <= 0.52) {
+      const closingHeight = 1 - flapProgress / 0.52;
+      ctx.fillStyle = "#7d896d";
+      ctx.beginPath();
+      ctx.moveTo(envelopeX, envelopeY);
+      ctx.lineTo(envelopeX + envelopeW, envelopeY);
+      ctx.lineTo(envelopeX + envelopeW / 2, envelopeY + envelopeH * 0.62 * closingHeight);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    const sealOpacity = Math.max(0, 1 - progress / 0.2);
+    if (sealOpacity > 0) {
+      const sealY = envelopeY + envelopeH * 0.5;
+      const sealRadius = Math.max(30, envelopeW * 0.09);
+      const gradient = ctx.createRadialGradient(centerX - 8, sealY - 10, 2, centerX, sealY, sealRadius);
+      gradient.addColorStop(0, "#cb8664");
+      gradient.addColorStop(1, "#99563b");
+      ctx.globalAlpha = sealOpacity;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, sealY, sealRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 237, 216, .65)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#f9e9d7";
+      ctx.font = `${Math.max(15, envelopeW * 0.043)}px Georgia`;
+      ctx.fillText("K & P", centerX, sealY + 6);
+      ctx.globalAlpha = 1;
+    }
+  }, []);
+
+  useEffect(() => {
+    const redraw = () => drawEnvelope(progressRef.current);
+    redraw();
+    const observer = new ResizeObserver(redraw);
+    if (canvasRef.current) observer.observe(canvasRef.current);
+    return () => {
+      observer.disconnect();
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [drawEnvelope]);
+
+  const startOpening = () => {
+    if (opening) return;
+    onStartMusic();
+    setOpening(true);
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 250 : 2600;
+    const startedAt = performance.now();
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      progressRef.current = progress;
+      drawEnvelope(progress);
+      if (progress > 0.84 && overlayRef.current) {
+        overlayRef.current.style.opacity = String(1 - (progress - 0.84) / 0.16);
+      }
+      if (progress < 1) frameRef.current = requestAnimationFrame(animate);
+      else onComplete();
+    };
+    frameRef.current = requestAnimationFrame(animate);
+  };
+
+  return (
+    <section ref={overlayRef} className="invitation-intro" aria-label="Sobre de entrada a la invitación">
+      <div className="intro-botanical intro-botanical--left" aria-hidden="true"><img src="/eucalyptus-leaf.png" alt="" /></div>
+      <div className="intro-botanical intro-botanical--right" aria-hidden="true"><img src="/eucalyptus-leaf.png" alt="" /></div>
+      <button className="envelope-canvas-trigger" type="button" onClick={startOpening} disabled={opening} aria-label="Abrir el sobre y entrar a la invitación">
+        <canvas ref={canvasRef} className="envelope-canvas" aria-hidden="true" />
+        <span className="envelope-instruction">{opening ? "ABRIENDO…" : "TOCÁ PARA ABRIR"}</span>
+      </button>
+    </section>
+  );
+}
+
 function getTimeLeft(): TimeLeft {
   const distance = Math.max(0, EVENT_DATE - Date.now());
   return {
@@ -35,8 +218,9 @@ function getTimeLeft(): TimeLeft {
 }
 
 export default function Home() {
-  const [introOpening, setIntroOpening] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [introDismissed, setIntroDismissed] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
   const [rsvpOpen, setRsvpOpen] = useState(false);
@@ -78,13 +262,18 @@ export default function Home() {
     window.setTimeout(() => setCopied(false), 1800);
   };
 
-  const openInvitation = () => {
-    if (introOpening) return;
-    setIntroOpening(true);
-    window.setTimeout(() => {
-      setIntroDismissed(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 1450);
+  const startMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = 0.65;
+    void audio.play().catch(() => setMusicPlaying(false));
+  };
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) void audio.play().catch(() => setMusicPlaying(false));
+    else audio.pause();
   };
 
   const shareMessage = (message: string) => {
@@ -109,29 +298,35 @@ export default function Home() {
 
   return (
     <main>
+      <audio
+        ref={audioRef}
+        src="/musica-karina-pablo.mp3"
+        loop
+        preload="auto"
+        onPlay={() => setMusicPlaying(true)}
+        onPause={() => setMusicPlaying(false)}
+      />
       {!introDismissed && (
-        <section className={`invitation-intro${introOpening ? " invitation-intro--opening" : ""}`} aria-label="Sobre de entrada a la invitación">
-          <div className="intro-botanical intro-botanical--left" aria-hidden="true">
-            <img src="/eucalyptus-leaf.png" alt="" />
-          </div>
-          <div className="intro-botanical intro-botanical--right" aria-hidden="true">
-            <img src="/eucalyptus-leaf.png" alt="" />
-          </div>
-          <button className="envelope-trigger" type="button" onClick={openInvitation} disabled={introOpening} aria-label="Abrir el sobre y entrar a la invitación">
-            <span className="envelope" aria-hidden="true">
-              <span className="envelope-back" />
-              <span className="envelope-card">
-                <small>NOS CASAMOS</small>
-                <strong>Karina <i>&amp;</i> Pablo</strong>
-                <span>14 · 11 · 2026</span>
-              </span>
-              <span className="envelope-flap" />
-              <span className="envelope-front" />
-              <span className="envelope-seal">K <i>&amp;</i> P</span>
-            </span>
-            <span className="envelope-instruction">TOCÁ PARA ABRIR</span>
-          </button>
-        </section>
+        <EnvelopeIntro
+          onStartMusic={startMusic}
+          onComplete={() => {
+            setIntroDismissed(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      )}
+
+      {introDismissed && (
+        <button
+          className={`audio-control${musicPlaying ? " audio-control--playing" : ""}`}
+          type="button"
+          onClick={toggleMusic}
+          aria-label={musicPlaying ? "Pausar música" : "Reproducir música"}
+          aria-pressed={musicPlaying}
+          title={musicPlaying ? "Pausar música" : "Reproducir música"}
+        >
+          <span aria-hidden="true">{musicPlaying ? "❚❚" : "▶"}</span>
+        </button>
       )}
 
       <section className="visual-section hero" aria-label="Portada de la invitación">

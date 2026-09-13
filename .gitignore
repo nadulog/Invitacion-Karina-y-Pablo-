@@ -43,4 +43,5 @@ next-env.d.ts
 /dev.log
 /preview.log
 *.tsbuildinfo
+preview-phone*.log
 *.tar.gz
