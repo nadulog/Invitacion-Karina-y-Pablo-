@@ -4,6 +4,23 @@ import { FormEvent, useEffect, useState } from "react";
 
 const EVENT_DATE = new Date("2026-11-14T20:00:00-03:00").getTime();
 const ADDRESS = "Gorriti 950, Lomas de Zamora, Buenos Aires";
+const GALLERY_IMAGES = [
+  {
+    src: "/galeria-01.jpg",
+    alt: "Karina y Pablo celebrando entre papelitos a la salida del civil",
+    orientation: "landscape",
+  },
+  {
+    src: "/galeria-02-bn.png",
+    alt: "Karina y Pablo junto a sus hijos en el marco de Nos casamos",
+    orientation: "landscape",
+  },
+  {
+    src: "/galeria-03.png",
+    alt: "Karina y Pablo besándose dentro del marco de Nos casamos",
+    orientation: "portrait",
+  },
+] as const;
 
 type TimeLeft = { days: number; hours: number; minutes: number; seconds: number };
 
@@ -18,10 +35,13 @@ function getTimeLeft(): TimeLeft {
 }
 
 export default function Home() {
+  const [introOpening, setIntroOpening] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [songOpen, setSongOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<(typeof GALLERY_IMAGES)[number] | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -31,11 +51,21 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (introDismissed) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [introDismissed]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setLocationOpen(false);
         setRsvpOpen(false);
         setSongOpen(false);
+        setSelectedPhoto(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -46,6 +76,15 @@ export default function Home() {
     await navigator.clipboard.writeText(ADDRESS);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const openInvitation = () => {
+    if (introOpening) return;
+    setIntroOpening(true);
+    window.setTimeout(() => {
+      setIntroDismissed(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 1450);
   };
 
   const shareMessage = (message: string) => {
@@ -70,15 +109,44 @@ export default function Home() {
 
   return (
     <main>
+      {!introDismissed && (
+        <section className={`invitation-intro${introOpening ? " invitation-intro--opening" : ""}`} aria-label="Sobre de entrada a la invitación">
+          <div className="intro-botanical intro-botanical--left" aria-hidden="true">
+            <img src="/eucalyptus-leaf.png" alt="" />
+          </div>
+          <div className="intro-botanical intro-botanical--right" aria-hidden="true">
+            <img src="/eucalyptus-leaf.png" alt="" />
+          </div>
+          <button className="envelope-trigger" type="button" onClick={openInvitation} disabled={introOpening} aria-label="Abrir el sobre y entrar a la invitación">
+            <span className="envelope" aria-hidden="true">
+              <span className="envelope-back" />
+              <span className="envelope-card">
+                <small>NOS CASAMOS</small>
+                <strong>Karina <i>&amp;</i> Pablo</strong>
+                <span>14 · 11 · 2026</span>
+              </span>
+              <span className="envelope-flap" />
+              <span className="envelope-front" />
+              <span className="envelope-seal">K <i>&amp;</i> P</span>
+            </span>
+            <span className="envelope-instruction">TOCÁ PARA ABRIR</span>
+          </button>
+        </section>
+      )}
+
       <section className="visual-section hero" aria-label="Portada de la invitación">
-        <img src="/portada.png" alt="Karina y Pablo anuncian su casamiento el 14 de noviembre" />
-        <button className="hero-scroll" onClick={() => document.getElementById("cuenta-regresiva")?.scrollIntoView({ behavior: "smooth" })} aria-label="Ver la invitación completa">
-          <span>DESCUBRIR</span><b>↓</b>
-        </button>
+        <img src="/portada-bn.png" alt="Karina y Pablo anuncian su casamiento el 14 de noviembre" />
       </section>
 
       <section id="cuenta-regresiva" className="visual-section countdown-section" aria-label="Cuenta regresiva">
-        <img src="/countdown-ref.png" alt="Falta cada vez menos" />
+        <img src="/countdown-background-clean-v2.png" alt="Falta cada vez menos" />
+        <div className="falling-leaves" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, index) => <img key={index} src="/eucalyptus-single-leaf.png" alt="" />)}
+        </div>
+        <div className="countdown-heading">
+          <p>FALTA CADA VEZ MENOS</p>
+          <span />
+        </div>
         <div className="countdown" aria-live="polite">
           {([
             [timeLeft?.days ?? "—", "DÍAS"],
@@ -94,12 +162,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="visual-section" aria-label="Fecha y hora">
+      <section className="visual-section date-section" aria-label="Fecha y hora">
         <img src="/fecha-hora.png" alt="Sábado 14 de noviembre, ceremonia y celebración a las 20 horas" />
       </section>
 
       <section className="visual-section action-section" aria-label="Ubicación">
-        <img src="/como-llegar.png" alt="Nos encontramos en Jano's Boutique, Gorriti 950, Lomas de Zamora" />
+        <img src="/ubicacion-placa-v2.png" alt="Nos encontramos en Jano's Boutique, Gorriti 950, Lomas de Zamora" />
         <button className="image-action location-action" onClick={() => setLocationOpen(true)}>CÓMO LLEGAR</button>
       </section>
 
@@ -107,9 +175,29 @@ export default function Home() {
         <img src="/dress-code.png" alt="Dress code elegante sport" />
       </section>
 
-      <section className="visual-section action-section" aria-label="Música">
+      <section className="visual-section action-section music-section" aria-label="Música">
         <img src="/musica.png" alt="Música: qué canción no puede faltar" />
+        <div className="music-vinyl" aria-hidden="true">
+          <img src="/vinilo.png" alt="" />
+          <span />
+        </div>
+        <img className="music-tonearm" src="/tonearm-clean-v2.png" alt="" aria-hidden="true" />
         <a className="image-action song-action" href="https://open.spotify.com/playlist/1FXHVDtqhLjzpM5gungnyy?si=RpqP-6KkSya6Knr2zw-4Mw&utm_source=whatsapp&pt=1a8b25fca192a26abe6e84e615ed7242&pi=P7t6HVtNTbGfi" target="_blank" rel="noreferrer">SUGERIR CANCIÓN</a>
+      </section>
+
+      <section className="visual-section gallery-section" aria-labelledby="gallery-title">
+        <header className="gallery-heading">
+          <h2 id="gallery-title">Ya pasó lo formal, ahora queda celebrar con todos ustedes</h2>
+          <span />
+        </header>
+        <div className="gallery-grid">
+          {GALLERY_IMAGES.map((photo, index) => (
+            <button className={`gallery-card gallery-card--${photo.orientation}`} key={photo.src} onClick={() => setSelectedPhoto(photo)} aria-label={`Ampliar foto ${index + 1} de la galería`}>
+              <img src={photo.src} alt={photo.alt} />
+            </button>
+          ))}
+        </div>
+        <p className="gallery-signature">Karina <i>&amp;</i> Pablo</p>
       </section>
 
       <section className="visual-section" aria-label="Regalos">
@@ -122,7 +210,12 @@ export default function Home() {
       </section>
 
       <footer className="visual-section site-footer" aria-label="BloomDate">
-        <img src="/footer-bloomdate.png" alt="Hecho con amor por BloomDate" />
+        <img src="/footer-bloomdate-clean.png" alt="Hecho con amor por BloomDate" />
+        <nav className="footer-links" aria-label="Contacto de BloomDate">
+          <a className="footer-link footer-link-instagram" href="https://www.instagram.com/bloomdate.invitaciones/" target="_blank" rel="noreferrer" aria-label="Abrir Instagram de BloomDate" />
+          <a className="footer-link footer-link-whatsapp" href="https://wa.me/541140436324" target="_blank" rel="noreferrer" aria-label="Contactar a BloomDate por WhatsApp" />
+          <a className="footer-link footer-link-web" href="https://bloomdate-site.netlify.app/" target="_blank" rel="noreferrer" aria-label="Abrir el sitio web de BloomDate" />
+        </nav>
       </footer>
 
       {locationOpen && (
@@ -136,6 +229,15 @@ export default function Home() {
             <a className="modal-button olive" href="https://www.google.com/maps/search/?api=1&query=Gorriti%20950%2C%20Lomas%20de%20Zamora" target="_blank" rel="noreferrer">GOOGLE MAPS</a>
             <a className="modal-button terracotta" href="https://www.waze.com/ul?q=Gorriti%20950%2C%20Lomas%20de%20Zamora&navigate=yes" target="_blank" rel="noreferrer">WAZE</a>
             <button className="modal-button outline" onClick={copyAddress}>{copied ? "¡DIRECCIÓN COPIADA!" : "COPIAR DIRECCIÓN"}</button>
+          </div>
+        </div>
+      )}
+
+      {selectedPhoto && (
+        <div className="gallery-lightbox" role="presentation" onMouseDown={() => setSelectedPhoto(null)}>
+          <div className="gallery-lightbox-content" role="dialog" aria-modal="true" aria-label="Foto ampliada" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="gallery-lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Cerrar foto">CERRAR</button>
+            <img src={selectedPhoto.src} alt={selectedPhoto.alt} />
           </div>
         </div>
       )}
